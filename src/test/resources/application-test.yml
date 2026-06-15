@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/job_tracker_test}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/job_tracker}
     username: ${SPRING_DATASOURCE_USERNAME:job_tracker_user}
     password: ${SPRING_DATASOURCE_PASSWORD:job_tracker_password}
     driver-class-name: org.postgresql.Driver
