@@ -15,13 +15,21 @@
 ---
 
 ## Step 1.2 — Standard API response and global error handling
-**Date:** —
-**Status:** Not started
+**Date:** 2026-06-15
+**Status:** Done
 
-- Need to create `ApiResponse<T>`, `PageResponse<T>`, `ErrorResponse`
-- Need to create `ResourceNotFoundException`, `DuplicateResourceException`, `BusinessRuleException`
-- Need to create `GlobalExceptionHandler` mapping exceptions to correct HTTP status codes
-- Need tests for each error mapping
+- Created `common/api/ApiResponse<T>` — wraps all success responses: `{"success": true, "data": {...}}`
+- Created `common/api/PageResponse<T>` — wraps paginated list responses with page/size/totalElements metadata
+- Created `common/api/ErrorResponse` — wraps all error responses: `{"success": false, "error": {"code": "...", "message": "...", "fields": {...}}}`
+- Created three custom exceptions:
+  - `ResourceNotFoundException` → 404
+  - `DuplicateResourceException` → 409
+  - `BusinessRuleException` → 422
+- Created `GlobalExceptionHandler` with `@RestControllerAdvice` mapping each exception to the correct HTTP status and `ErrorResponse`
+- Also handles `MethodArgumentNotValidException` (Bean Validation failures) → 422 with per-field error details
+- Unknown exceptions → 500 with safe message (no stack trace leaked)
+- Created `GlobalExceptionHandlerTest` using standalone MockMvc (no Spring context, no database needed)
+- All 7 tests pass: `Tests run: 7, Failures: 0, Errors: 0`
 
 ---
 
