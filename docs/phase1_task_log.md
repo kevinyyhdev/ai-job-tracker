@@ -34,9 +34,12 @@
 ---
 
 ## Step 1.3 — Swagger/OpenAPI
-**Date:** —
-**Status:** Not started
+**Date:** 2026-06-15
+**Status:** Done
 
-- Need to add `springdoc-openapi` dependency to `pom.xml`
-- Need to configure title and version
-- Need to verify Swagger UI loads at `/swagger-ui.html`
+- Added `springdoc-openapi-starter-webmvc-ui` v2.8.9 dependency to `pom.xml`
+- Configured title "AI Job Tracker API", version 1.0.0 in `application.yaml`
+- Created `common/config/SecurityConfig` to permit all requests for now (will be replaced with JWT auth in Phase 2)
+- Swagger UI loads at `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON available at `http://localhost:8080/v3/api-docs`
+- Shows "no operations defined" — expected, controllers are built in Phase 2+

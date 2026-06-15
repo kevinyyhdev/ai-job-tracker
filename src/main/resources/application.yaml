@@ -10,3 +10,13 @@ management:
   endpoint:
     health:
       show-details: always
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  info:
+    title: AI Job Tracker API
+    version: 1.0.0
+    description: API for tracking job applications with AI-assisted resume matching
