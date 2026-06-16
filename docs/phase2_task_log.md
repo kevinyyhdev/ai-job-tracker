@@ -26,3 +26,28 @@
   - Duplicate email throws `DataIntegrityViolationException`
 - All 11 tests pass: `Tests run: 11, Failures: 0, Errors: 0`
 - Verified `users` table in local Docker DB with `\d users`
+
+---
+
+## Step 2.2 — Register endpoint
+**Date:** 2026-06-16
+**Status:** Done
+
+- Created `auth/dto/RegisterRequest` — validated DTO: email (required, valid format), password (required, min 8 chars), fullName (optional)
+- Created `auth/dto/AuthResponse` — response DTO with token, email, fullName (token is null until Step 2.3 adds JWT)
+- Added `PasswordEncoder` bean (`BCryptPasswordEncoder`) to `SecurityConfig`
+- Created `auth/AuthService.register`:
+  - Checks for duplicate email → throws `DuplicateResourceException` (409)
+  - Hashes password with BCrypt before saving
+  - Returns `AuthResponse`
+- Created `auth/AuthController` with `POST /api/auth/register` → 201 on success
+- Created `AuthControllerTest` using `@WebMvcTest` + `@MockBean AuthService`:
+  - Valid registration returns 201
+  - Invalid email returns 422 with field error
+  - Short password returns 422 with field error
+  - Duplicate email returns 409
+  - Added `@Import(SecurityConfig.class)` to load our CSRF-disabled security config in the test context
+- Created `AuthServiceTest` as a pure unit test (no Spring context):
+  - Password saved to DB is not plaintext and matches BCrypt hash
+- All 16 tests pass: `Tests run: 16, Failures: 0, Errors: 0`
+- Manually verified: first register returns 201, second register with same email returns 409
