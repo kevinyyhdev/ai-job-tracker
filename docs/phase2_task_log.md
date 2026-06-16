@@ -51,3 +51,32 @@
   - Password saved to DB is not plaintext and matches BCrypt hash
 - All 16 tests pass: `Tests run: 16, Failures: 0, Errors: 0`
 - Manually verified: first register returns 201, second register with same email returns 409
+
+---
+
+## Step 2.3 — Login and JWT
+**Date:** 2026-06-16
+**Status:** Done
+
+- Added jjwt 0.12.6 dependency (jjwt-api, jjwt-impl, jjwt-jackson) to `pom.xml`
+- Added `app.jwt.secret` and `app.jwt.expiration-ms` to `application.yaml` (reads from env vars, defaults for local dev)
+- Added JWT config to `application-test.yml` with fixed test secret
+- Created `common/exception/InvalidCredentialsException` → 401
+- Updated `GlobalExceptionHandler` to handle `InvalidCredentialsException` → 401 `INVALID_CREDENTIALS`
+- Created `auth/JwtService`:
+  - `generateToken(User)` — signs JWT with HS256, embeds user ID as subject and email as claim
+  - `extractUserId(String)` — parses token and returns subject (user UUID)
+  - `isTokenValid(String)` — returns true/false without throwing
+- Created `auth/dto/LoginRequest` — email (required, valid format) + password (required)
+- Updated `AuthService`:
+  - `register` now returns a real JWT token (not null)
+  - Added `login` — finds user by email, verifies BCrypt hash, returns JWT; both wrong email and wrong password return `InvalidCredentialsException` (same message, no user enumeration)
+- Added `POST /api/auth/login` to `AuthController`
+- Added 3 login tests to `AuthControllerTest` (200 + token, 401 wrong password, 401 unknown email)
+- Updated `AuthServiceTest` — added token validity assertion; fixed mock to set UUID on saved user
+- Created `AuthIntegrationTest` using `@SpringBootTest` + real PostgreSQL:
+  - Full register → login → JWT validation flow
+  - Wrong password returns 401
+  - `@BeforeEach` cleans up users table to ensure test isolation
+- All 22 tests pass: `Tests run: 22, Failures: 0, Errors: 0`
+- Manually verified: login returns real JWT (`eyJhbGci...`), wrong password returns 401

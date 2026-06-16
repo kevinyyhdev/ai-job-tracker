@@ -32,6 +32,12 @@ public class GlobalExceptionHandler {
         return ErrorResponse.of("BUSINESS_RULE_VIOLATION", ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleInvalidCredentials(InvalidCredentialsException ex) {
+        return ErrorResponse.of("INVALID_CREDENTIALS", ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ErrorResponse handleValidation(MethodArgumentNotValidException ex) {

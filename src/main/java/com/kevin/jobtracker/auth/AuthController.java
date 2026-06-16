@@ -1,6 +1,7 @@
 package com.kevin.jobtracker.auth;
 
 import com.kevin.jobtracker.auth.dto.AuthResponse;
+import com.kevin.jobtracker.auth.dto.LoginRequest;
 import com.kevin.jobtracker.auth.dto.RegisterRequest;
 import com.kevin.jobtracker.common.api.ApiResponse;
 import jakarta.validation.Valid;
@@ -19,5 +20,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ApiResponse.ok(authService.register(request));
+    }
+
+    @PostMapping("/login")
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ApiResponse.ok(authService.login(request));
     }
 }

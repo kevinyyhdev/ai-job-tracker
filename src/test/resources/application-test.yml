@@ -10,3 +10,8 @@ spring:
     show-sql: true
   flyway:
     enabled: true
+
+app:
+  jwt:
+    secret: test-secret-key-do-not-use-in-production-min-32-chars
+    expiration-ms: 86400000

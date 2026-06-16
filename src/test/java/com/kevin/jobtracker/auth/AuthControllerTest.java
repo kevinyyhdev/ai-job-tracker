@@ -3,6 +3,7 @@ package com.kevin.jobtracker.auth;
 import com.kevin.jobtracker.auth.dto.AuthResponse;
 import com.kevin.jobtracker.common.config.SecurityConfig;
 import com.kevin.jobtracker.common.exception.DuplicateResourceException;
+import com.kevin.jobtracker.common.exception.InvalidCredentialsException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -71,5 +72,43 @@ class AuthControllerTest {
                         .content("{\"email\":\"alice@example.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("DUPLICATE_RESOURCE"));
+    }
+
+    @Test
+    void validLoginReturns200WithToken() throws Exception {
+        when(authService.login(any()))
+                .thenReturn(new AuthResponse("jwt-token", "alice@example.com", "Alice"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").value("jwt-token"))
+                .andExpect(jsonPath("$.data.email").value("alice@example.com"));
+    }
+
+    @Test
+    void wrongPasswordReturns401() throws Exception {
+        when(authService.login(any()))
+                .thenThrow(new InvalidCredentialsException("Invalid email or password"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alice@example.com\",\"password\":\"wrongpassword\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void unknownEmailReturns401() throws Exception {
+        when(authService.login(any()))
+                .thenThrow(new InvalidCredentialsException("Invalid email or password"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"nobody@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("INVALID_CREDENTIALS"));
     }
 }
