@@ -100,3 +100,26 @@ Admin query patterns are fundamentally different from user-facing query patterns
 - Manually verified: list returns paginated response, detail returns application by ID, non-existent ID returns 404
 
 ---
+
+## Step 3.5 — Update and soft delete
+**Date:** 2026-06-17
+**Status:** Done
+
+- Created `application/dto/UpdateApplicationRequest` — all fields optional (no `@NotBlank`); only non-null fields are applied by the service; `@URL` still validates `jobLink` when provided
+- Updated `JobApplicationService`:
+  - `update(UUID id, UpdateApplicationRequest request, UUID userId)` — calls `getOwnedApplicationOrThrow`, applies only non-null fields, saves and returns updated response
+  - `delete(UUID id, UUID userId)` — calls `getOwnedApplicationOrThrow`, sets `deletedAt = OffsetDateTime.now()`, saves; returns void (204)
+- Added two endpoints to `ApplicationController`:
+  - `PATCH /api/applications/{id}` → 200 with updated application
+  - `DELETE /api/applications/{id}` → 204 No Content
+- Added 4 tests to `ApplicationControllerTest`:
+  - Update returns 200 with updated fields
+  - Update non-existent application returns 404
+  - Delete returns 204
+  - Delete non-existent application returns 404
+  - Used `doThrow(...).when(service).delete(...)` for void method mocking
+- Added `OpenApiConfig` bean to register JWT Bearer security scheme — enables Authorize button in Swagger UI
+- All tests pass
+- Manually verified via curl: update changes only sent fields, delete sets `deleted_at` in DB (confirmed in DBeaver), deleted application returns 404 on detail and disappears from list
+
+---

@@ -2,6 +2,7 @@ package com.kevin.jobtracker.application;
 
 import com.kevin.jobtracker.application.dto.ApplicationResponse;
 import com.kevin.jobtracker.application.dto.CreateApplicationRequest;
+import com.kevin.jobtracker.application.dto.UpdateApplicationRequest;
 import com.kevin.jobtracker.common.api.PageResponse;
 import com.kevin.jobtracker.common.exception.ResourceNotFoundException;
 import com.kevin.jobtracker.user.User;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
@@ -40,6 +42,25 @@ public class JobApplicationService {
 
     public ApplicationResponse getById(UUID id, UUID userId) {
         return toResponse(getOwnedApplicationOrThrow(id, userId));
+    }
+
+    public ApplicationResponse update(UUID id, UpdateApplicationRequest request, UUID userId) {
+        JobApplication app = getOwnedApplicationOrThrow(id, userId);
+        if (request.getCompanyName() != null) app.setCompanyName(request.getCompanyName());
+        if (request.getJobTitle() != null) app.setJobTitle(request.getJobTitle());
+        if (request.getJobLink() != null) app.setJobLink(request.getJobLink());
+        if (request.getLocation() != null) app.setLocation(request.getLocation());
+        if (request.getEmploymentType() != null) app.setEmploymentType(request.getEmploymentType());
+        if (request.getStatus() != null) app.setStatus(request.getStatus());
+        if (request.getSource() != null) app.setSource(request.getSource());
+        if (request.getNotes() != null) app.setNotes(request.getNotes());
+        return toResponse(applicationRepository.save(app));
+    }
+
+    public void delete(UUID id, UUID userId) {
+        JobApplication app = getOwnedApplicationOrThrow(id, userId);
+        app.setDeletedAt(OffsetDateTime.now());
+        applicationRepository.save(app);
     }
 
     JobApplication getOwnedApplicationOrThrow(UUID id, UUID userId) {

@@ -25,10 +25,10 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ApplicationController.class)
@@ -160,5 +160,53 @@ class ApplicationControllerTest {
                         .with(authentication(authAs(mockUser))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void updateReturns200WithUpdatedFields() throws Exception {
+        UUID appId = UUID.randomUUID();
+        ApplicationResponse updated = new ApplicationResponse(
+                appId, "Google", "Senior SDE",
+                null, null, null, ApplicationStatus.APPLIED,
+                null, null, null, null, null);
+
+        when(applicationService.update(any(), any(), any())).thenReturn(updated);
+
+        mockMvc.perform(patch("/api/applications/" + appId)
+                        .with(authentication(authAs(mockUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"jobTitle\":\"Senior SDE\",\"status\":\"APPLIED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobTitle").value("Senior SDE"))
+                .andExpect(jsonPath("$.data.status").value("APPLIED"));
+    }
+
+    @Test
+    void updateNotFoundReturns404() throws Exception {
+        when(applicationService.update(any(), any(), any()))
+                .thenThrow(new ResourceNotFoundException("Application not found"));
+
+        mockMvc.perform(patch("/api/applications/" + UUID.randomUUID())
+                        .with(authentication(authAs(mockUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"jobTitle\":\"Senior SDE\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteReturns204() throws Exception {
+        mockMvc.perform(delete("/api/applications/" + UUID.randomUUID())
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteNotFoundReturns404() throws Exception {
+        doThrow(new ResourceNotFoundException("Application not found"))
+                .when(applicationService).delete(any(), any());
+
+        mockMvc.perform(delete("/api/applications/" + UUID.randomUUID())
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isNotFound());
     }
 }

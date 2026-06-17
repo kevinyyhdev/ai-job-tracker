@@ -2,6 +2,7 @@ package com.kevin.jobtracker.application;
 
 import com.kevin.jobtracker.application.dto.ApplicationResponse;
 import com.kevin.jobtracker.application.dto.CreateApplicationRequest;
+import com.kevin.jobtracker.application.dto.UpdateApplicationRequest;
 import com.kevin.jobtracker.common.api.ApiResponse;
 import com.kevin.jobtracker.common.api.PageResponse;
 import com.kevin.jobtracker.user.User;
@@ -41,5 +42,21 @@ public class ApplicationController {
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser) {
         return ApiResponse.ok(applicationService.getById(id, currentUser.getId()));
+    }
+
+    @PatchMapping("/{id}")
+    public ApiResponse<ApplicationResponse> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateApplicationRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ApiResponse.ok(applicationService.update(id, request, currentUser.getId()));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser) {
+        applicationService.delete(id, currentUser.getId());
     }
 }
