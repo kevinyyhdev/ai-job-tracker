@@ -29,6 +29,12 @@ class AuthControllerTest {
     @MockBean
     private AuthService authService;
 
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private com.kevin.jobtracker.user.UserRepository userRepository;
+
     @Test
     void validRegistrationReturns201() throws Exception {
         when(authService.register(any()))

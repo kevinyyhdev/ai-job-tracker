@@ -80,3 +80,31 @@
   - `@BeforeEach` cleans up users table to ensure test isolation
 - All 22 tests pass: `Tests run: 22, Failures: 0, Errors: 0`
 - Manually verified: login returns real JWT (`eyJhbGci...`), wrong password returns 401
+
+---
+
+## Step 2.4 — Protect APIs and add current user endpoint
+**Date:** 2026-06-16
+**Status:** Done
+
+- Created `auth/JwtAuthenticationFilter` extending `OncePerRequestFilter`:
+  - Reads `Authorization: Bearer <token>` header
+  - Validates token with `JwtService`
+  - Extracts user ID, loads `User` from DB, sets `Authentication` in `SecurityContext`
+  - If no token or invalid token, continues filter chain unauthenticated
+- Replaced temporary `SecurityConfig` with real JWT-enforced config:
+  - `STATELESS` session policy (no server-side sessions)
+  - Public: `/api/auth/**`, `/actuator/health`, `/v3/api-docs/**`, `/swagger-ui/**`
+  - Protected: all other requests require valid JWT
+  - Custom `AuthenticationEntryPoint` returns `UNAUTHORIZED` in our `ErrorResponse` format
+  - JWT filter inserted before `UsernamePasswordAuthenticationFilter`
+- Created `user/dto/UserResponse` — id, email, fullName
+- Created `user/UserController` with `GET /api/users/me`:
+  - Uses `@AuthenticationPrincipal User` to read the current user from `SecurityContext`
+  - Returns 200 with user data
+- Updated `AuthControllerTest` — added `@MockBean JwtService` and `@MockBean UserRepository` so `JwtAuthenticationFilter` can be constructed in `@WebMvcTest` context
+- Added 2 tests to `AuthIntegrationTest`:
+  - Register → call `/me` with token → 200 with correct user
+  - Call `/me` without token → 401 `UNAUTHORIZED`
+- All tests pass
+- Manually verified: valid token returns user data, no token returns 401, fake token returns 401

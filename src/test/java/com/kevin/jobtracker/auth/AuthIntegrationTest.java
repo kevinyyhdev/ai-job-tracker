@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -58,6 +59,31 @@ class AuthIntegrationTest {
         String userId = jwtService.extractUserId(token);
 
         assertThat(userRepository.findById(java.util.UUID.fromString(userId))).isPresent();
+    }
+
+    @Test
+    void meEndpointReturnsCurrentUser() throws Exception {
+        MvcResult registerResult = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"me@example.com\",\"password\":\"password123\",\"fullName\":\"Me User\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String token = com.jayway.jsonpath.JsonPath.read(
+                registerResult.getResponse().getContentAsString(), "$.data.token");
+
+        mockMvc.perform(get("/api/users/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value("me@example.com"))
+                .andExpect(jsonPath("$.data.fullName").value("Me User"));
+    }
+
+    @Test
+    void meEndpointWithoutTokenReturns401() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
     }
 
     @Test
