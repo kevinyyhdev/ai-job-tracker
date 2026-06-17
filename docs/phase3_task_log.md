@@ -35,3 +35,19 @@ The composite indexes `(user_id, status)` and `(user_id, created_at)` are optimi
 Admin query patterns are fundamentally different from user-facing query patterns. At scale, this is one reason companies run separate **read replicas** for admin dashboards — admin queries (full-table scans, aggregations, cross-tenant views) are slow and resource-intensive and should not compete with user traffic on the primary database. The admin replica can have its own index strategy tuned for admin query shapes.
 
 ---
+
+## Step 3.2 — Tenant-safe service pattern
+**Date:** 2026-06-17
+**Status:** Done
+
+- Created `application/JobApplicationService` with ownership helper:
+  - `getOwnedApplicationOrThrow(UUID id, UUID userId)` — wraps the tenant-safe repository lookup; throws `ResourceNotFoundException` if the application doesn't exist, doesn't belong to the user, or is soft-deleted
+  - Made package-private (not private) so it can be tested directly and called within the same package
+  - All future CRUD service methods call this helper instead of plain `findById`
+- Created `JobApplicationServiceTest` as a pure unit test using Mockito:
+  - `@Mock JobApplicationRepository` — fake repository, no DB needed
+  - `@InjectMocks JobApplicationService` — real service with mock injected via constructor
+  - Test: wrong user ID → `findByIdAndUserIdAndDeletedAtIsNull` returns empty → service throws `ResourceNotFoundException`
+- All tests pass
+
+---
