@@ -1,5 +1,6 @@
 package com.kevin.jobtracker.auth;
 
+import com.kevin.jobtracker.application.JobApplicationRepository;
 import com.kevin.jobtracker.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,10 +29,14 @@ class AuthIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private JobApplicationRepository applicationRepository;
+
+    @Autowired
     private JwtService jwtService;
 
     @BeforeEach
     void cleanUp() {
+        applicationRepository.deleteAll();
         userRepository.deleteAll();
     }
 

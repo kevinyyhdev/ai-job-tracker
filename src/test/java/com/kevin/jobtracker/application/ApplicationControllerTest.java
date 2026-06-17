@@ -18,9 +18,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.UUID;
 
+import com.kevin.jobtracker.common.api.PageResponse;
+import com.kevin.jobtracker.common.exception.ResourceNotFoundException;
+
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -107,5 +114,51 @@ class ApplicationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"companyName\":\"Google\",\"jobTitle\":\"SDE\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listReturns200WithPage() throws Exception {
+        ApplicationResponse response = new ApplicationResponse(
+                UUID.randomUUID(), "Google", "Software Engineer",
+                null, null, null, ApplicationStatus.SAVED,
+                null, null, null, null, null);
+
+        PageResponse<ApplicationResponse> page = new PageResponse<>(
+                Collections.singletonList(response), 0, 20, 1, 1, true);
+
+        when(applicationService.list(any(), anyInt(), anyInt())).thenReturn(page);
+
+        mockMvc.perform(get("/api/applications")
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].companyName").value("Google"))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
+    void getByIdReturns200() throws Exception {
+        UUID appId = UUID.randomUUID();
+        ApplicationResponse response = new ApplicationResponse(
+                appId, "Amazon", "SDE",
+                null, null, null, ApplicationStatus.SAVED,
+                null, null, null, null, null);
+
+        when(applicationService.getById(any(), any())).thenReturn(response);
+
+        mockMvc.perform(get("/api/applications/" + appId)
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.companyName").value("Amazon"));
+    }
+
+    @Test
+    void getByIdNotFoundReturns404() throws Exception {
+        when(applicationService.getById(any(), any()))
+                .thenThrow(new ResourceNotFoundException("Application not found"));
+
+        mockMvc.perform(get("/api/applications/" + UUID.randomUUID())
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 }

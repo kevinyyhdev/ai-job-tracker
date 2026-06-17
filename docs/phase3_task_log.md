@@ -79,3 +79,24 @@ Admin query patterns are fundamentally different from user-facing query patterns
 - Manually verified: valid request returns 201 with UUID and timestamps, no token returns 401, missing field returns 422
 
 ---
+
+## Step 3.4 — List and detail endpoints
+**Date:** 2026-06-17
+**Status:** Done
+
+- Added `findByUserIdAndDeletedAtIsNull(UUID userId, Pageable pageable)` to `JobApplicationRepository` — Spring Data generates paginated SQL scoped to current user, excluding soft-deleted rows
+- Updated `JobApplicationService`:
+  - `list(UUID userId, int page, int size)` — builds `PageRequest` sorted by `createdAt DESC`, calls repository, maps result to `PageResponse<ApplicationResponse>` via `PageResponse.from()`
+  - `getById(UUID id, UUID userId)` — delegates to `getOwnedApplicationOrThrow`, maps to response
+- Added two endpoints to `ApplicationController`:
+  - `GET /api/applications` — accepts `page` (default 0) and `size` (default 20) query params
+  - `GET /api/applications/{id}` — reads UUID from path variable
+- Added 3 tests to `ApplicationControllerTest`:
+  - List returns 200 with content array and pagination metadata
+  - Detail returns 200 for own application
+  - Non-existent or foreign application returns 404 `NOT_FOUND`
+- Fixed `AuthIntegrationTest.cleanUp` — now deletes `job_applications` before `users` to respect the FK constraint
+- All tests pass
+- Manually verified: list returns paginated response, detail returns application by ID, non-existent ID returns 404
+
+---

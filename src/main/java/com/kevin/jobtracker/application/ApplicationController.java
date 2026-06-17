@@ -3,12 +3,15 @@ package com.kevin.jobtracker.application;
 import com.kevin.jobtracker.application.dto.ApplicationResponse;
 import com.kevin.jobtracker.application.dto.CreateApplicationRequest;
 import com.kevin.jobtracker.common.api.ApiResponse;
+import com.kevin.jobtracker.common.api.PageResponse;
 import com.kevin.jobtracker.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/applications")
@@ -23,5 +26,20 @@ public class ApplicationController {
             @Valid @RequestBody CreateApplicationRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ApiResponse.ok(applicationService.create(request, currentUser));
+    }
+
+    @GetMapping
+    public ApiResponse<PageResponse<ApplicationResponse>> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User currentUser) {
+        return ApiResponse.ok(applicationService.list(currentUser.getId(), page, size));
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<ApplicationResponse> getById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser) {
+        return ApiResponse.ok(applicationService.getById(id, currentUser.getId()));
     }
 }
