@@ -1,6 +1,9 @@
 package com.kevin.jobtracker.application;
 
+import com.kevin.jobtracker.application.dto.ApplicationResponse;
+import com.kevin.jobtracker.application.dto.CreateApplicationRequest;
 import com.kevin.jobtracker.common.exception.ResourceNotFoundException;
+import com.kevin.jobtracker.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,8 +15,38 @@ public class JobApplicationService {
 
     private final JobApplicationRepository applicationRepository;
 
+    public ApplicationResponse create(CreateApplicationRequest request, User currentUser) {
+        JobApplication app = new JobApplication(currentUser, request.getCompanyName(), request.getJobTitle());
+        app.setJobLink(request.getJobLink());
+        app.setLocation(request.getLocation());
+        app.setEmploymentType(request.getEmploymentType());
+        app.setSource(request.getSource());
+        app.setNotes(request.getNotes());
+        if (request.getStatus() != null) {
+            app.setStatus(request.getStatus());
+        }
+        return toResponse(applicationRepository.save(app));
+    }
+
     JobApplication getOwnedApplicationOrThrow(UUID id, UUID userId) {
         return applicationRepository.findByIdAndUserIdAndDeletedAtIsNull(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+    }
+
+    private ApplicationResponse toResponse(JobApplication app) {
+        return new ApplicationResponse(
+                app.getId(),
+                app.getCompanyName(),
+                app.getJobTitle(),
+                app.getJobLink(),
+                app.getLocation(),
+                app.getEmploymentType(),
+                app.getStatus(),
+                app.getSource(),
+                app.getNotes(),
+                app.getAppliedAt(),
+                app.getCreatedAt(),
+                app.getUpdatedAt()
+        );
     }
 }

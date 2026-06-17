@@ -51,3 +51,31 @@ Admin query patterns are fundamentally different from user-facing query patterns
 - All tests pass
 
 ---
+
+## Step 3.3 — Create application endpoint
+**Date:** 2026-06-17
+**Status:** Done
+
+- Added `EXPIRED` to `ApplicationStatus` enum — covers job postings that were saved but later canceled by the company; no migration needed since status is stored as VARCHAR
+- Created `application/dto/CreateApplicationRequest`:
+  - `companyName` and `jobTitle` — `@NotBlank` required
+  - `jobLink` — `@URL` optional, validated if present
+  - `location`, `employmentType`, `source`, `notes`, `status` — all optional
+  - If `status` not provided, entity defaults to `SAVED`
+- Created `application/dto/ApplicationResponse` — id, all fields, timestamps; does not expose `userId`
+- Updated `JobApplicationService`:
+  - `create(request, currentUser)` — builds entity, saves, returns response via `toResponse()`
+  - `toResponse()` private helper maps entity → DTO; centralizes mapping used by all future service methods
+- Created `ApplicationController` at `/api/applications`:
+  - `POST /api/applications` → 201; uses `@AuthenticationPrincipal User` to get current user from SecurityContext
+- Created `ApplicationControllerTest` using `@WebMvcTest` + `@Import(SecurityConfig.class)`:
+  - Valid create with auth → 201 with correct data
+  - Missing company name → 422 `VALIDATION_ERROR`
+  - Missing job title → 422 `VALIDATION_ERROR`
+  - Invalid URL → 422 `VALIDATION_ERROR`
+  - No token → 401 `UNAUTHORIZED`
+  - Uses `SecurityMockMvcRequestPostProcessors.authentication()` to inject a `User` entity as principal
+- All tests pass
+- Manually verified: valid request returns 201 with UUID and timestamps, no token returns 401, missing field returns 422
+
+---
