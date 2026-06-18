@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler {
             fields.put(error.getField(), error.getDefaultMessage());
         }
         return ErrorResponse.of("VALIDATION_ERROR", "Request validation failed", fields);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        return ErrorResponse.of("BUSINESS_RULE_VIOLATION", "File size must not exceed 5 MB");
     }
 
     @ExceptionHandler(Exception.class)
