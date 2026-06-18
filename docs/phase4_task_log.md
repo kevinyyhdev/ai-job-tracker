@@ -51,3 +51,30 @@
 - All tests pass
 
 ---
+
+## Step 4.3 — Extract resume text
+**Date:** 2026-06-18
+**Status:** Done
+
+- Added Apache Tika to `pom.xml`:
+  - `tika-core:2.9.2` — the facade API (`org.apache.tika.Tika`) used by our service; NOT a transitive of the package artifact so must be declared explicitly
+  - `tika-parsers-standard-package:2.9.2` — bundles all standard parsers including PDF (PDFBox) and DOCX (Apache POI); detected Tika's auto-detection handles format identification so we don't need to pass content type
+- Created `common/extraction/TextExtractionService`:
+  - One `extract(byte[])` method; takes raw bytes, returns extracted plain text
+  - Single `Tika` instance held as a field — Tika is thread-safe, reusing it avoids reconstructing the parser registry on every upload
+  - If Tika throws `TikaException`/`IOException` (corrupt or unrecognisable file) → wrapped as `BusinessRuleException` → 422
+  - If extraction succeeds but text is blank (`null` or only whitespace, e.g. scanned image PDF with no embedded text layer) → `BusinessRuleException` → 422
+  - Result is stripped of leading/trailing whitespace before returning
+- Updated `ResumeService.upload()`:
+  - Extraction runs BEFORE `storageService.store()` — if text extraction fails (corrupt file, blank result), nothing is written to disk; the upload is rejected cleanly with no orphaned bytes
+  - `resume.setExtractedText(extractedText)` populates the `extracted_text` column at insert time
+- Updated `ResumeResponse` DTO — added `extractedText` field (between `sizeBytes` and `createdAt`); caller can confirm text was successfully extracted at upload; AI matching step (Phase 6) reads this field from DB instead of re-parsing the file
+- Updated `toResponse()` in `ResumeService` to map `extractedText` from entity to DTO
+- Created `TextExtractionServiceTest` (plain unit test, no Spring context):
+  - Plain text bytes extract successfully and result contains expected content
+  - Empty byte array → Tika throws `TikaException` → `BusinessRuleException` with "corrupt" message
+  - Whitespace-only content → blank check triggers → `BusinessRuleException` with "no extractable text" message
+  - Result is stripped of surrounding whitespace
+- All 63 tests pass
+
+---

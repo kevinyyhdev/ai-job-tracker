@@ -59,7 +59,7 @@ class ResumeControllerTest {
 
         ResumeResponse response = new ResumeResponse(
                 UUID.randomUUID(), "resume.pdf", "application/pdf", 11L,
-                OffsetDateTime.now(), OffsetDateTime.now());
+                "Software engineer with 5 years experience", OffsetDateTime.now(), OffsetDateTime.now());
 
         when(resumeService.upload(any(), any())).thenReturn(response);
 
@@ -81,7 +81,7 @@ class ResumeControllerTest {
         ResumeResponse response = new ResumeResponse(
                 UUID.randomUUID(), "resume.docx",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                12L, OffsetDateTime.now(), OffsetDateTime.now());
+                12L, "Software engineer with 5 years experience", OffsetDateTime.now(), OffsetDateTime.now());
 
         when(resumeService.upload(any(), any())).thenReturn(response);
 
@@ -105,7 +105,7 @@ class ResumeControllerTest {
     void listReturns200WithResumes() throws Exception {
         ResumeResponse response = new ResumeResponse(
                 UUID.randomUUID(), "cv.pdf", "application/pdf", 500L,
-                OffsetDateTime.now(), OffsetDateTime.now());
+                "Data analyst with Python skills", OffsetDateTime.now(), OffsetDateTime.now());
 
         when(resumeService.list(any())).thenReturn(List.of(response));
 

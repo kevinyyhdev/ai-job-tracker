@@ -16,6 +16,7 @@ public class ResumeResponse {
     private String originalFilename;
     private String contentType;
     private Long sizeBytes;
+    private String extractedText;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

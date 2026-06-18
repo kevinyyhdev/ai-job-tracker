@@ -2,6 +2,7 @@ package com.kevin.jobtracker.resume;
 
 import com.kevin.jobtracker.common.exception.BusinessRuleException;
 import com.kevin.jobtracker.common.exception.ResourceNotFoundException;
+import com.kevin.jobtracker.common.extraction.TextExtractionService;
 import com.kevin.jobtracker.common.storage.StorageService;
 import com.kevin.jobtracker.resume.dto.ResumeResponse;
 import com.kevin.jobtracker.user.User;
@@ -29,8 +30,10 @@ public class ResumeService {
 
     private final ResumeRepository resumeRepository;
     private final StorageService storageService;
+    private final TextExtractionService textExtractionService;
 
-    // Validates the file, writes bytes to storage, saves metadata row in DB, returns metadata response.
+    // Validates the file, extracts text (rejects if blank/unreadable), writes bytes to storage,
+    // saves metadata row in DB with extracted text, returns metadata response.
     public ResumeResponse upload(MultipartFile file, User currentUser) {
         validateFile(file);
         byte[] bytes;
@@ -39,9 +42,11 @@ public class ResumeService {
         } catch (IOException e) {
             throw new BusinessRuleException("Failed to read uploaded file");
         }
+        String extractedText = textExtractionService.extract(bytes);
         String storageKey = storageService.store(bytes, file.getOriginalFilename());
         Resume resume = new Resume(currentUser, file.getOriginalFilename(),
                 file.getContentType(), file.getSize(), storageKey);
+        resume.setExtractedText(extractedText);
         return toResponse(resumeRepository.save(resume));
     }
 
@@ -89,13 +94,14 @@ public class ResumeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Resume not found"));
     }
 
-    // Maps Resume entity to ResumeResponse DTO, excluding internal fields (storageKey, extractedText).
+    // Maps Resume entity to ResumeResponse DTO, excluding internal fields (storageKey).
     private ResumeResponse toResponse(Resume resume) {
         return new ResumeResponse(
                 resume.getId(),
                 resume.getOriginalFilename(),
                 resume.getContentType(),
                 resume.getSizeBytes(),
+                resume.getExtractedText(),
                 resume.getCreatedAt(),
                 resume.getUpdatedAt()
         );
