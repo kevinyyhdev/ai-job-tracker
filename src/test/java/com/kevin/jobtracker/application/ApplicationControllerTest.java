@@ -25,8 +25,10 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import com.kevin.jobtracker.common.exception.BusinessRuleException;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -126,7 +128,7 @@ class ApplicationControllerTest {
         PageResponse<ApplicationResponse> page = new PageResponse<>(
                 Collections.singletonList(response), 0, 20, 1, 1, true);
 
-        when(applicationService.list(any(), anyInt(), anyInt())).thenReturn(page);
+        when(applicationService.list(any(), anyInt(), anyInt(), isNull(), isNull())).thenReturn(page);
 
         mockMvc.perform(get("/api/applications")
                         .with(authentication(authAs(mockUser))))
@@ -208,5 +210,84 @@ class ApplicationControllerTest {
         mockMvc.perform(delete("/api/applications/" + UUID.randomUUID())
                         .with(authentication(authAs(mockUser))))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void listWithStatusFilterReturns200() throws Exception {
+        ApplicationResponse response = new ApplicationResponse(
+                UUID.randomUUID(), "Google", "Software Engineer",
+                null, null, null, ApplicationStatus.APPLIED,
+                null, null, null, null, null);
+
+        PageResponse<ApplicationResponse> page = new PageResponse<>(
+                Collections.singletonList(response), 0, 20, 1, 1, true);
+
+        when(applicationService.list(any(), anyInt(), anyInt(), any(ApplicationStatus.class), isNull()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/applications?status=APPLIED")
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].status").value("APPLIED"));
+    }
+
+    @Test
+    void listWithKeywordFilterReturns200() throws Exception {
+        ApplicationResponse response = new ApplicationResponse(
+                UUID.randomUUID(), "Google", "Senior Software Engineer",
+                null, null, null, ApplicationStatus.SAVED,
+                null, null, null, null, null);
+
+        PageResponse<ApplicationResponse> page = new PageResponse<>(
+                Collections.singletonList(response), 0, 20, 1, 1, true);
+
+        when(applicationService.list(any(), anyInt(), anyInt(), isNull(), any(String.class)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/applications?keyword=senior")
+                        .with(authentication(authAs(mockUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].companyName").value("Google"));
+    }
+
+    @Test
+    void legalStatusTransitionReturns200() throws Exception {
+        UUID appId = UUID.randomUUID();
+        ApplicationResponse updated = new ApplicationResponse(
+                appId, "Google", "SDE",
+                null, null, null, ApplicationStatus.APPLIED,
+                null, null, null, null, null);
+
+        when(applicationService.transitionStatus(any(), any(), any())).thenReturn(updated);
+
+        mockMvc.perform(patch("/api/applications/" + appId + "/status")
+                        .with(authentication(authAs(mockUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"APPLIED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("APPLIED"));
+    }
+
+    @Test
+    void illegalStatusTransitionReturns422() throws Exception {
+        when(applicationService.transitionStatus(any(), any(), any()))
+                .thenThrow(new BusinessRuleException("Cannot transition from REJECTED to APPLIED"));
+
+        mockMvc.perform(patch("/api/applications/" + UUID.randomUUID() + "/status")
+                        .with(authentication(authAs(mockUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"APPLIED\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("BUSINESS_RULE_VIOLATION"));
+    }
+
+    @Test
+    void statusTransitionMissingStatusReturns422() throws Exception {
+        mockMvc.perform(patch("/api/applications/" + UUID.randomUUID() + "/status")
+                        .with(authentication(authAs(mockUser)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
     }
 }

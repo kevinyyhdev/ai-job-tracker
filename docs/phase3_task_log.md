@@ -123,3 +123,30 @@ Admin query patterns are fundamentally different from user-facing query patterns
 - Manually verified via curl: update changes only sent fields, delete sets `deleted_at` in DB (confirmed in DBeaver), deleted application returns 404 on detail and disappears from list
 
 ---
+
+## Step 3.6 — Filtering, keyword search, and status transitions
+**Date:** 2026-06-18
+**Status:** Done
+
+- Created `application/ApplicationSpecification` — a plain utility class (no Spring annotation) with static methods that each return a `Specification<JobApplication>`. JPA's `Specification` is a functional interface whose single method `toPredicate` takes `(Root, CriteriaQuery, CriteriaBuilder)` and returns a `Predicate` (a packaged SQL condition, not a Java boolean). Each method produces one condition:
+  - `belongsToUser(userId)` → `WHERE user_id = ?`
+  - `notDeleted()` → `AND deleted_at IS NULL`
+  - `hasStatus(status)` → `AND status = ?`
+  - `hasKeyword(keyword)` → `AND (LOWER(company_name) LIKE ? OR LOWER(job_title) LIKE ?)` (case-insensitive)
+- Updated `JobApplicationRepository` to extend `JpaSpecificationExecutor<JobApplication>` — adds `findAll(Specification, Pageable)` which executes a dynamically assembled query. Removed `findByUserIdAndDeletedAtIsNull` since the list query now goes through specs.
+- **Refactored `list()` from named query methods to JPA Specifications** — avoids a combinatorial explosion of repository methods (one per filter combination). Instead, the service chains specs conditionally and the repository executes one `findAll(spec, pageable)` call regardless of which filters are active. New optional params: `status` (filter by enum value), `keyword` (case-insensitive substring match on company name or job title). `belongsToUser` and `notDeleted` are always applied; `hasStatus` and `hasKeyword` are only chained when the caller provides them. This pattern follows the open/closed principle: add a new filter by adding one method to `ApplicationSpecification` and one `if` block in `list()` — existing filters are untouched.
+- Created `application/dto/StatusTransitionRequest` — single `@NotNull` `status` field.
+- Added `transitionStatus(id, newStatus, userId)` to `JobApplicationService`:
+  - Calls `getOwnedApplicationOrThrow` to enforce ownership (same 404 pattern as all other mutations)
+  - Looks up allowed targets from `ALLOWED_TRANSITIONS` static map; throws `BusinessRuleException` → 422 if the move is illegal
+  - Terminal statuses (REJECTED, WITHDRAWN, EXPIRED) map to empty sets — nothing can move out of them
+- Added `PATCH /api/applications/{id}/status` endpoint — separate from `PATCH /{id}` to make status transitions an explicit action with its own business rule enforcement
+- Added 5 tests to `ApplicationControllerTest`:
+  - `?status=APPLIED` filter returns 200 with filtered content
+  - `?keyword=senior` filter returns 200 with matched content
+  - Legal transition (SAVED → APPLIED) returns 200 with updated status
+  - Illegal transition returns 422 `BUSINESS_RULE_VIOLATION`
+  - Missing status field on transition returns 422 `VALIDATION_ERROR`
+- All tests pass
+
+---

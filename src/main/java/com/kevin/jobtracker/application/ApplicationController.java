@@ -2,6 +2,7 @@ package com.kevin.jobtracker.application;
 
 import com.kevin.jobtracker.application.dto.ApplicationResponse;
 import com.kevin.jobtracker.application.dto.CreateApplicationRequest;
+import com.kevin.jobtracker.application.dto.StatusTransitionRequest;
 import com.kevin.jobtracker.application.dto.UpdateApplicationRequest;
 import com.kevin.jobtracker.common.api.ApiResponse;
 import com.kevin.jobtracker.common.api.PageResponse;
@@ -33,8 +34,10 @@ public class ApplicationController {
     public ApiResponse<PageResponse<ApplicationResponse>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) ApplicationStatus status,
+            @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal User currentUser) {
-        return ApiResponse.ok(applicationService.list(currentUser.getId(), page, size));
+        return ApiResponse.ok(applicationService.list(currentUser.getId(), page, size, status, keyword));
     }
 
     @GetMapping("/{id}")
@@ -50,6 +53,14 @@ public class ApplicationController {
             @Valid @RequestBody UpdateApplicationRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ApiResponse.ok(applicationService.update(id, request, currentUser.getId()));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ApiResponse<ApplicationResponse> transitionStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody StatusTransitionRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ApiResponse.ok(applicationService.transitionStatus(id, request.getStatus(), currentUser.getId()));
     }
 
     @DeleteMapping("/{id}")
